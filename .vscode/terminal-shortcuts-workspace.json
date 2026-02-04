@@ -1,0 +1,7 @@
+[
+    {
+        "label": "Run streamlit app",
+        "command": "streamlit run main.py",
+        "group": "Workspace"
+    }
+]

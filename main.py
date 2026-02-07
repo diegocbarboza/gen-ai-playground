@@ -1,8 +1,9 @@
 """Main app file for the GenAI Playground"""
 import asyncio
 import streamlit as st
-from api import get_model_parameters, get_model_list, get_model_instance, call_orchestrator
-from langchain_core.messages import AIMessageChunk
+from langchain_core.messages import AIMessageChunk,ToolMessage
+
+from api import get_model_parameters, get_model_list, call_orchestrator
 
 async def main():
     """Main function to run the Streamlit app."""
@@ -65,21 +66,23 @@ async def main():
         with st.chat_message("assistant"):
             # apply sidebar settings to the API model instance
             model_index = available_models.index(st.session_state["model"])
-            stream = call_orchestrator(model_index, 
+            stream = call_orchestrator(model_index,
                                        prompt,
                                        temperature=st.session_state["temperature"],
                                        max_tokens=st.session_state["max_completion_tokens"])
 
             placeholder = st.empty()
+            tools_placeholder = st.empty()
             reasoning_placeholder = st.empty()
             metadata_placeholder = st.empty()
             full_response = ""
             full_reasoning = ""
+            full_tool_response = ""
             usage_metadata = None
 
             async for _chunk in stream:
                 for chunk in _chunk:
-                    
+
                     if isinstance(chunk, AIMessageChunk):
                         if chunk.content:
                             full_response += chunk.content
@@ -96,6 +99,11 @@ async def main():
                                 with st.expander("📊 Usage Details", expanded=True):
                                     st.caption(f"✨ General: {model}")
                                     st.caption(f"🧾 Usage: {usage_metadata}")
+                    elif isinstance(chunk, ToolMessage):
+                        with tools_placeholder.container():
+                            with st.expander("🔧 Tool Response Details", expanded=False):
+                                full_tool_response += f"{chunk.name}: {chunk.content}"
+                                st.markdown(full_tool_response)
 
         st.session_state.messages.append({
             "role": "assistant",

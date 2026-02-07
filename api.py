@@ -1,9 +1,9 @@
 """API module to manage model instances and parameters."""
 
-import asyncio
 import os
 import json
 from langchain_nvidia_ai_endpoints import ChatNVIDIA
+from langchain_core.messages import BaseMessage
 from dotenv import load_dotenv
 from orchestrator import Orchestrator
 
@@ -41,13 +41,14 @@ def get_model_instance(index: int, temperature: float = 0.7, max_tokens: int = 1
     print("No model instance found")
     return None
 
+
 def call_orchestrator(
     model_index: int,
-    user_input: str,
+    messages: list[BaseMessage],
     temperature: float = 0.7,
     max_tokens: int = 1024
 ):
     """Function to call the orchestrator with the selected model and user input."""
     model = get_model_instance(model_index, temperature, max_tokens)
     orchestrator = Orchestrator(model)
-    return orchestrator.invoke(user_input)
+    return orchestrator.invoke(messages)

@@ -1,16 +1,13 @@
-import os
-import json
-#from langchain_mcp_adapters.client import MultiServerMCPClient
-from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
-from langchain_core.tools import tool
+"""Orchestrator class to manage interactions between different models, tools and agents."""
+
 from typing import TypedDict, List
-from langchain_core.language_models import BaseChatModel 
-import asyncio
-
-from langchain_nvidia_ai_endpoints import ChatNVIDIA
-from langgraph.graph import StateGraph, MessagesState, START, END
-
+#from langchain_mcp_adapters.client import MultiServerMCPClient
+from langchain_core.messages import BaseMessage, SystemMessage
+from langchain_core.tools import tool
+from langchain_core.language_models import BaseChatModel
+from langgraph.graph import StateGraph, END
 from langgraph.prebuilt import ToolNode, tools_condition
+
 
 @tool
 def get_weather(city: str) -> str:
@@ -28,8 +25,9 @@ class Orchestrator:
     def __init__(self, model: BaseChatModel):
         self.model = model
 
-    
-    async def invoke(self, text):
+
+    async def invoke(self, messages: list[BaseMessage]):
+        """Invoke the orchestrator with the given user input."""
         graph = StateGraph(State)
 
         graph.add_node("tool_decider", self.tool_decider)
@@ -52,12 +50,12 @@ class Orchestrator:
 
         app = graph.compile()
         for event in app.stream({
-            "messages": [HumanMessage(content=text)],
+            "messages": messages,
             "tool_results": []
         }, stream_mode="messages"):
             yield event
 
-    
+
     def tool_decider(self, state: State):
         """Node that decides if will use tools."""
         llm_with_tools = self.model.bind_tools([get_weather])
@@ -70,7 +68,7 @@ class Orchestrator:
 
 
     def final_answer(self, state: State):
-        """Node to generate final answer."""    
+        """Node to generate final answer."""
         tool_context = [
             m.content for m in state["messages"]
             if m.type == "tool"

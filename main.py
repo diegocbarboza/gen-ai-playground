@@ -1,7 +1,7 @@
 """Main app file for the GenAI Playground"""
 import asyncio
 import streamlit as st
-from langchain_core.messages import AIMessageChunk,ToolMessage
+from langchain_core.messages import AIMessageChunk, AIMessage, HumanMessage, ToolMessage
 
 from api import get_model_parameters, get_model_list, call_orchestrator
 
@@ -54,11 +54,11 @@ async def main():
         st.session_state.messages = []
 
     for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
+        with st.chat_message(message.type):
+            st.markdown(message.content)
 
     if prompt := st.chat_input("What is up?"):
-        st.session_state.messages.append({"role": "user", "content": prompt})
+        st.session_state.messages.append(HumanMessage(content=prompt))
 
         with st.chat_message("user"):
             st.markdown(prompt)
@@ -67,7 +67,7 @@ async def main():
             # apply sidebar settings to the API model instance
             model_index = available_models.index(st.session_state["model"])
             stream = call_orchestrator(model_index,
-                                       prompt,
+                                       st.session_state.messages,
                                        temperature=st.session_state["temperature"],
                                        max_tokens=st.session_state["max_completion_tokens"])
 
@@ -105,10 +105,13 @@ async def main():
                                 full_tool_response += f"{chunk.name}: {chunk.content}"
                                 st.markdown(full_tool_response)
 
-        st.session_state.messages.append({
-            "role": "assistant",
-            "content": full_response
-        })
+        st.session_state.messages.append(
+            AIMessage(
+                content=full_response,
+                additional_kwargs={"reasoning_content": full_reasoning},
+                usage_metadata=usage_metadata
+            )
+        )
 
 if __name__ == "__main__":
     asyncio.run(main())

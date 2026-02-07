@@ -13,7 +13,7 @@ async def main():
     # Sidebar: model settings
     with st.sidebar:
         # Conversation controls
-        if st.button("New conversation"):
+        if st.button("➕ New conversation"):
             st.session_state["messages"] = []
 
         st.markdown("---")

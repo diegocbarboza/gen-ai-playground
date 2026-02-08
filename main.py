@@ -78,13 +78,12 @@ async def main():
             full_response = ""
             full_reasoning = ""
             full_tool_response = ""
-            usage_metadata = None
+            usage_metadata =  {'input_tokens': 0, 'output_tokens': 0, 'total_tokens': 0}
 
             async for _chunk in stream:
                 node = _chunk[1]['langgraph_node']
 
                 for chunk in _chunk:
-
                     if isinstance(chunk, AIMessageChunk):
                         if chunk.content and node == "final_answer":
                             full_response += chunk.content
@@ -95,7 +94,9 @@ async def main():
                                 with st.expander("🧠 Model Reasoning", expanded=False):
                                     st.markdown(full_reasoning)
                         elif chunk.usage_metadata:
-                            usage_metadata = chunk.usage_metadata
+                            usage_metadata["input_tokens"] += chunk.usage_metadata.get("input_tokens", 0)
+                            usage_metadata["output_tokens"] += chunk.usage_metadata.get("output_tokens", 0)
+                            usage_metadata["total_tokens"] += chunk.usage_metadata.get("total_tokens", 0)
                             model = {'model': st.session_state["model"]}
                             with metadata_placeholder.container():
                                 with st.expander("📊 Usage Details", expanded=True):

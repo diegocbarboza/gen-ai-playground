@@ -88,7 +88,7 @@ class Orchestrator:
         ]
 
         if len(tool_context) == 0:
-            response = self.model.invoke([state["messages"][0]])
+            response = self.model.invoke(state["messages"])
         else:
             context = "\n".join(str(tool_context))
             prompt = [

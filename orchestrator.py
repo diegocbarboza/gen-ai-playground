@@ -1,6 +1,9 @@
 """Orchestrator class to manage interactions between different models, tools and agents."""
-
+import os
 from typing import TypedDict, List
+from dotenv import load_dotenv
+from arize.otel import register
+from openinference.instrumentation.langchain import LangChainInstrumentor
 #from langchain_mcp_adapters.client import MultiServerMCPClient
 from langchain_core.messages import BaseMessage, SystemMessage
 from langchain_core.tools import tool
@@ -8,6 +11,14 @@ from langchain_core.language_models import BaseChatModel
 from langgraph.graph import StateGraph, END
 from langgraph.prebuilt import ToolNode, tools_condition
 
+load_dotenv()
+
+tracer_provider = register(
+    space_id=os.environ.get("ARIZE_SPACE_ID"),
+    api_key=os.environ.get("ARIZE_API_KEY"),
+    project_name=os.environ.get("ARIZE_PROJECT_NAME", "default"),
+)
+LangChainInstrumentor().instrument(tracer_provider=tracer_provider)
 
 @tool
 def get_weather(city: str) -> str:

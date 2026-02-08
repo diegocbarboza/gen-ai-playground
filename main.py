@@ -57,6 +57,8 @@ async def main():
         with st.chat_message(message.type):
             st.markdown(message.content)
 
+    # TODO: fixme: when a new question is asked, the previous answer, reasoning and metadata are duplicated in the UI.
+    # TODO: fixme: tool responses are not being saved and sent in the next question, causing the model to not have the context of previous tool calls.
     if prompt := st.chat_input("What is up?"):
         st.session_state.messages.append(HumanMessage(content=prompt))
 
@@ -71,10 +73,8 @@ async def main():
                                        temperature=st.session_state["temperature"],
                                        max_tokens=st.session_state["max_completion_tokens"])
 
-            placeholder = st.empty()
-            tools_placeholder = st.empty()
-            reasoning_placeholder = st.empty()
-            metadata_placeholder = st.empty()
+            previous_type = None
+            content_placeholder = []
             full_response = ""
             full_reasoning = ""
             full_tool_response = ""
@@ -86,11 +86,19 @@ async def main():
                 for chunk in _chunk:
                     if isinstance(chunk, AIMessageChunk):
                         if chunk.content and node == "final_answer":
+                            if previous_type != 'content':
+                                previous_type = 'content'
+                                content_placeholder.append(st.empty())
+                                full_response = ""
                             full_response += chunk.content
-                            placeholder.markdown(full_response)
+                            content_placeholder[-1].markdown(full_response)
                         elif 'reasoning_content' in chunk.additional_kwargs:
+                            if previous_type != 'reasoning_content':
+                                previous_type = 'reasoning_content'
+                                content_placeholder.append(st.empty())
+                                full_reasoning = ""
                             full_reasoning += chunk.additional_kwargs['reasoning_content']
-                            with reasoning_placeholder.container():
+                            with content_placeholder[-1].container():
                                 with st.expander("🧠 Model Reasoning", expanded=False):
                                     st.markdown(full_reasoning)
                         elif chunk.usage_metadata:
@@ -98,15 +106,21 @@ async def main():
                             usage_metadata["output_tokens"] += chunk.usage_metadata.get("output_tokens", 0)
                             usage_metadata["total_tokens"] += chunk.usage_metadata.get("total_tokens", 0)
                             model = {'model': st.session_state["model"]}
-                            with metadata_placeholder.container():
-                                with st.expander("📊 Usage Details", expanded=True):
-                                    st.caption(f"✨ General: {model}")
-                                    st.caption(f"🧾 Usage: {usage_metadata}")
                     elif isinstance(chunk, ToolMessage):
-                        with tools_placeholder.container():
+                        if previous_type != 'tools_response':
+                            previous_type = 'tools_response'
+                            content_placeholder.append(st.empty())
+                            full_tool_response = ""
+                        with content_placeholder[-1].container():
                             with st.expander("🔧 Tool Response Details", expanded=False):
                                 full_tool_response += f"\n\n{chunk.name}: {chunk.content}"
                                 st.markdown(full_tool_response)
+
+            content_placeholder.append(st.empty())
+            with content_placeholder[-1].container():
+                with st.expander("📊 Usage Details", expanded=True):
+                    st.caption(f"✨ General: {model}")
+                    st.caption(f"🧾 Usage: {usage_metadata}")
 
         st.session_state.messages.append(
             AIMessage(

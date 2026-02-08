@@ -81,10 +81,12 @@ async def main():
             usage_metadata = None
 
             async for _chunk in stream:
+                node = _chunk[1]['langgraph_node']
+
                 for chunk in _chunk:
 
                     if isinstance(chunk, AIMessageChunk):
-                        if chunk.content:
+                        if chunk.content and node == "final_answer":
                             full_response += chunk.content
                             placeholder.markdown(full_response)
                         elif 'reasoning_content' in chunk.additional_kwargs:
@@ -102,7 +104,7 @@ async def main():
                     elif isinstance(chunk, ToolMessage):
                         with tools_placeholder.container():
                             with st.expander("🔧 Tool Response Details", expanded=False):
-                                full_tool_response += f"{chunk.name}: {chunk.content}"
+                                full_tool_response += f"\n\n{chunk.name}: {chunk.content}"
                                 st.markdown(full_tool_response)
 
         st.session_state.messages.append(

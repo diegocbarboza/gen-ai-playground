@@ -3,6 +3,7 @@
 import os
 import json
 from langchain_nvidia_ai_endpoints import ChatNVIDIA
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import BaseMessage
 from dotenv import load_dotenv
 from orchestrator import Orchestrator
@@ -35,6 +36,13 @@ def get_model_instance(index: int, temperature: float = 0.7, max_tokens: int = 1
             model=model["name"],
             api_key = os.environ["NVIDIA_API_KEY"],
             max_completion_tokens=max_tokens,
+            temperature=temperature
+        )
+    elif model["provider"] == "google":
+        return ChatGoogleGenerativeAI(
+            model=model["name"],
+            api_key=os.environ["GOOGLE_API_KEY"],
+            max_output_tokens=max_tokens,
             temperature=temperature
         )
 

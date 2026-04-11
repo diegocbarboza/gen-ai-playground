@@ -4,33 +4,42 @@ import streamlit as st
 from langchain_core.messages import AIMessageChunk, AIMessage, HumanMessage, ToolMessage
 
 from api import get_model_parameters, get_model_list, call_orchestrator
+from settings import show_settings
 
 async def main():
     """Main function to run the Streamlit app."""
 
     st.title("GenAI Playground")
 
+    # Initialize session state
+    if "show_settings" not in st.session_state:
+        st.session_state["show_settings"] = False
+
+    if "model" not in st.session_state:
+        st.session_state["model"] = get_model_parameters(0)["name"]
+
+    if "temperature" not in st.session_state:
+        st.session_state["temperature"] = get_model_parameters(0)["temperature_default"]
+
+    if "max_completion_tokens" not in st.session_state:
+        st.session_state["max_completion_tokens"] = get_model_parameters(0)["max_completion_tokens"]
+
     # Sidebar: model settings
     with st.sidebar:
         # Conversation controls
         if st.button("➕ New conversation"):
             st.session_state["messages"] = []
+            st.session_state["show_settings"] = False
+
+        # Config button
+        if st.button("⚙️ Settings"):
+            st.session_state["show_settings"] = not st.session_state["show_settings"]
 
         st.markdown("---")
-
-        # Settings controls
+        
         st.header("Settings")
-        if "model" not in st.session_state:
-            st.session_state["model"] = get_model_parameters(0)["name"]
-
-        if "temperature" not in st.session_state:
-            st.session_state["temperature"] = get_model_parameters(0)["temperature_default"]
-
-        if "max_completion_tokens" not in st.session_state:
-            st.session_state["max_completion_tokens"] = get_model_parameters(0)["max_completion_tokens"]
-
         available_models = get_model_list()
-        model_index = available_models.index(st.session_state["model"])
+        model_index = available_models.index(st.session_state["model"]) if st.session_state["model"] in available_models else 0
 
         model_input = st.selectbox("Model", options=available_models, index=model_index)
         model_parameters = get_model_parameters(available_models.index(model_input))
@@ -50,85 +59,89 @@ async def main():
         st.session_state["max_completion_tokens"] = int(max_completion_tokens_input)
 
 
-    if "messages" not in st.session_state:
-        st.session_state.messages = []
+    if st.session_state["show_settings"]:
+        show_settings()
+    else:
+        # Chat interface
+        if "messages" not in st.session_state:
+            st.session_state.messages = []
 
-    for message in st.session_state.messages:
-        with st.chat_message(message.type):
-            st.markdown(message.content)
+        for message in st.session_state.messages:
+            with st.chat_message(message.type):
+                st.markdown(message.content)
 
-    # TODO: fixme: when a new question is asked, the previous answer, reasoning and metadata are duplicated in the UI.
-    # TODO: fixme: tool responses are not being saved and sent in the next question, causing the model to not have the context of previous tool calls.
-    if prompt := st.chat_input("Ask a question..."):
-        st.session_state.messages.append(HumanMessage(content=prompt))
+        # TODO: fixme: when a new question is asked, the previous answer, reasoning and metadata are duplicated in the UI.
+        # TODO: fixme: tool responses are not being saved and sent in the next question, causing the model to not have the context of previous tool calls.
+        if prompt := st.chat_input("Ask a question..."):
+            st.session_state.messages.append(HumanMessage(content=prompt))
 
-        with st.chat_message("user"):
-            st.markdown(prompt)
+            with st.chat_message("user"):
+                st.markdown(prompt)
 
-        with st.chat_message("assistant"):
-            # apply sidebar settings to the API model instance
-            model_index = available_models.index(st.session_state["model"])
-            stream = call_orchestrator(model_index,
-                                       st.session_state.messages,
-                                       temperature=st.session_state["temperature"],
-                                       max_tokens=st.session_state["max_completion_tokens"])
+            with st.chat_message("assistant"):
+                # apply sidebar settings to the API model instance
+                model_index = available_models.index(st.session_state["model"])
+                stream = call_orchestrator(model_index,
+                                           st.session_state.messages,
+                                           temperature=st.session_state["temperature"],
+                                           max_tokens=st.session_state["max_completion_tokens"])
 
-            previous_type = None
-            content_placeholder = []
-            full_response = ""
-            full_reasoning = ""
-            full_tool_response = ""
-            usage_metadata =  {'input_tokens': 0, 'output_tokens': 0, 'total_tokens': 0}
+                previous_type = None
+                content_placeholder = []
+                full_response = ""
+                full_reasoning = ""
+                full_tool_response = ""
+                usage_metadata =  {'input_tokens': 0, 'output_tokens': 0, 'total_tokens': 0}
 
-            async for _chunk in stream:
-                node = _chunk[1]['langgraph_node']
+                async for _chunk in stream:
+                    node = _chunk[1]['langgraph_node']
 
-                for chunk in _chunk:
-                    if isinstance(chunk, AIMessageChunk):
-                        if chunk.content and node == "final_answer":
-                            if previous_type != 'content':
-                                previous_type = 'content'
+                    for chunk in _chunk:
+                        if isinstance(chunk, AIMessageChunk):
+                            if chunk.content and node == "final_answer":
+                                if previous_type != 'content':
+                                    previous_type = 'content'
+                                    content_placeholder.append(st.empty())
+                                    full_response = ""
+                                full_response += chunk.content
+                                content_placeholder[-1].markdown(full_response)
+                            elif 'reasoning_content' in chunk.additional_kwargs:
+                                if previous_type != 'reasoning_content':
+                                    previous_type = 'reasoning_content'
+                                    content_placeholder.append(st.empty())
+                                    full_reasoning = ""
+                                full_reasoning += chunk.additional_kwargs['reasoning_content']
+                                with content_placeholder[-1].container():
+                                    with st.expander("🧠 Model Reasoning", expanded=False):
+                                        st.markdown(full_reasoning)
+                            elif chunk.usage_metadata:
+                                usage_metadata["input_tokens"] += chunk.usage_metadata.get("input_tokens", 0)
+                                usage_metadata["output_tokens"] += chunk.usage_metadata.get("output_tokens", 0)
+                                usage_metadata["total_tokens"] += chunk.usage_metadata.get("total_tokens", 0)
+                                model = {'model': st.session_state["model"]}
+                        elif isinstance(chunk, ToolMessage):
+                            if previous_type != 'tools_response':
+                                previous_type = 'tools_response'
                                 content_placeholder.append(st.empty())
-                                full_response = ""
-                            full_response += chunk.content
-                            content_placeholder[-1].markdown(full_response)
-                        elif 'reasoning_content' in chunk.additional_kwargs:
-                            if previous_type != 'reasoning_content':
-                                previous_type = 'reasoning_content'
-                                content_placeholder.append(st.empty())
-                                full_reasoning = ""
-                            full_reasoning += chunk.additional_kwargs['reasoning_content']
+                                full_tool_response = ""
                             with content_placeholder[-1].container():
-                                with st.expander("🧠 Model Reasoning", expanded=False):
-                                    st.markdown(full_reasoning)
-                        elif chunk.usage_metadata:
-                            usage_metadata["input_tokens"] += chunk.usage_metadata.get("input_tokens", 0)
-                            usage_metadata["output_tokens"] += chunk.usage_metadata.get("output_tokens", 0)
-                            usage_metadata["total_tokens"] += chunk.usage_metadata.get("total_tokens", 0)
-                            model = {'model': st.session_state["model"]}
-                    elif isinstance(chunk, ToolMessage):
-                        if previous_type != 'tools_response':
-                            previous_type = 'tools_response'
-                            content_placeholder.append(st.empty())
-                            full_tool_response = ""
-                        with content_placeholder[-1].container():
-                            with st.expander("🔧 Tool Response Details", expanded=False):
-                                full_tool_response += f"\n\n{chunk.name}: {chunk.content}"
-                                st.markdown(full_tool_response)
+                                with st.expander("🔧 Tool Response Details", expanded=False):
+                                    full_tool_response += f"\n\n{chunk.name}: {chunk.content}"
+                                    st.markdown(full_tool_response)
 
-            content_placeholder.append(st.empty())
-            with content_placeholder[-1].container():
-                with st.expander("📊 Usage Details", expanded=True):
-                    st.caption(f"✨ General: {model}")
-                    st.caption(f"🧾 Usage: {usage_metadata}")
+                content_placeholder.append(st.empty())
+                with content_placeholder[-1].container():
+                    with st.expander("📊 Usage Details", expanded=True):
+                        st.caption(f"✨ General: {model}")
+                        st.caption(f"🧾 Usage: {usage_metadata}")
 
-        st.session_state.messages.append(
-            AIMessage(
-                content=full_response,
-                additional_kwargs={"reasoning_content": full_reasoning},
-                usage_metadata=usage_metadata
+            st.session_state.messages.append(
+                AIMessage(
+                    content=full_response,
+                    additional_kwargs={"reasoning_content": full_reasoning},
+                    usage_metadata=usage_metadata
+                )
             )
-        )
 
 if __name__ == "__main__":
     asyncio.run(main())

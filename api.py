@@ -26,6 +26,30 @@ def get_model_parameters(index: int):
     return available_models[index]
 
 
+def add_model(model_parameters):
+    """Adds a new model to the available models list."""
+    available_models.append(model_parameters)
+    save_models_to_file()
+
+
+def update_model(model_index, model_parameters):
+    """Updates the model parameters based on the index provided"""
+    available_models[model_index] = {**available_models[model_index], **model_parameters}
+    save_models_to_file()
+
+
+def delete_model(model_index):
+    """Deletes the model based on the index provided."""
+    del available_models[model_index]
+    save_models_to_file()
+
+
+def save_models_to_file():
+    """Saves the current available models to the JSON file."""
+    with open("models.json", "w", encoding="utf-8") as f:
+        json.dump(available_models, f)
+
+
 def get_model_instance(index: int, temperature: float = 0.7, max_tokens: int = 1024):
     """Returns an instance of the model based on the index provided."""
     model = available_models[index]

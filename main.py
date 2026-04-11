@@ -59,7 +59,7 @@ async def main():
 
     # TODO: fixme: when a new question is asked, the previous answer, reasoning and metadata are duplicated in the UI.
     # TODO: fixme: tool responses are not being saved and sent in the next question, causing the model to not have the context of previous tool calls.
-    if prompt := st.chat_input("What is up?"):
+    if prompt := st.chat_input("Ask a question..."):
         st.session_state.messages.append(HumanMessage(content=prompt))
 
         with st.chat_message("user"):

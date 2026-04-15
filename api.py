@@ -11,9 +11,13 @@ from orchestrator import Orchestrator
 load_dotenv()
 
 available_models = []
+available_agents = []
 
 with open("models.json", "r", encoding="utf-8") as f:
     available_models = json.load(f)
+
+with open("agents.json", "r", encoding="utf-8") as f:
+    available_agents = json.load(f)
 
 
 def get_model_list():
@@ -72,6 +76,40 @@ def get_model_instance(index: int, temperature: float = 0.7, max_tokens: int = 1
 
     print("No model instance found")
     return None
+
+
+def get_agent_list():
+    """Returns a list of available agent names."""
+    return [agent["name"] for agent in available_agents]
+
+
+def get_agent_parameters(index: int):
+    """Gets the agent parameters based on the index provided."""
+    return available_agents[index]
+
+
+def add_agent(agent_parameters):
+    """Adds a new agent to the available agents list."""
+    available_agents.append(agent_parameters)
+    save_agents_to_file()
+
+
+def update_agent(agent_index, agent_parameters):
+    """Updates the agent parameters based on the index provided"""
+    available_agents[agent_index] = {**available_agents[agent_index], **agent_parameters}
+    save_agents_to_file()
+
+
+def delete_agent(agent_index):
+    """Deletes the agent based on the index provided."""
+    del available_agents[agent_index]
+    save_agents_to_file()
+
+
+def save_agents_to_file():
+    """Saves the current available agents to the JSON file."""
+    with open("agents.json", "w", encoding="utf-8") as f:
+        json.dump(available_agents, f)
 
 
 def call_orchestrator(

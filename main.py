@@ -5,6 +5,7 @@ from langchain_core.messages import AIMessageChunk, AIMessage, HumanMessage, Too
 
 from api import get_model_parameters, get_model_list, call_orchestrator
 from settings import show_settings
+from agents_page import show_agents
 
 async def main():
     """Main function to run the Streamlit app."""
@@ -14,6 +15,9 @@ async def main():
     # Initialize session state
     if "show_settings" not in st.session_state:
         st.session_state["show_settings"] = False
+
+    if "show_agents_page" not in st.session_state:
+        st.session_state["show_agents_page"] = True
 
     if "model" not in st.session_state:
         st.session_state["model"] = get_model_parameters(0)["name"]
@@ -34,6 +38,9 @@ async def main():
         # Config button
         if st.button("⚙️ Settings"):
             st.session_state["show_settings"] = not st.session_state["show_settings"]
+
+        if st.button("🧠 Agents"):
+            st.session_state["show_agents_page"] = not st.session_state["show_agents_page"]
 
         st.markdown("---")
         
@@ -61,6 +68,8 @@ async def main():
 
     if st.session_state["show_settings"]:
         show_settings()
+    elif st.session_state["show_agents_page"]:
+        show_agents()
     else:
         # Chat interface
         if "messages" not in st.session_state:

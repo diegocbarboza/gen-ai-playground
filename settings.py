@@ -80,12 +80,12 @@ def show_settings():
                 if st.button("❌ Cancel"):
                     st.session_state["edit_model"] = ""
                     st.rerun()
-
-        parameters = get_model_parameters(available_models.index(model))
-        st.markdown(f"**Provider**: {parameters['provider']}")
-        st.markdown(f"**Base URL**: {parameters['base_url']}")
-        st.markdown(f"**Max Completion Tokens**: {parameters['max_completion_tokens']}")
-        st.markdown(f"**Temperature Range**: {parameters['temperature_min']} - {parameters['temperature_max']} | Default: {parameters['temperature_default']}")
+        else:
+            parameters = get_model_parameters(available_models.index(model))
+            st.markdown(f"**Provider**: {parameters['provider']}")
+            st.markdown(f"**Base URL**: {parameters['base_url']}")
+            st.markdown(f"**Max Completion Tokens**: {parameters['max_completion_tokens']}")
+            st.markdown(f"**Temperature Range**: {parameters['temperature_min']} - {parameters['temperature_max']} | Default: {parameters['temperature_default']}")
 
         st.markdown("---")
 

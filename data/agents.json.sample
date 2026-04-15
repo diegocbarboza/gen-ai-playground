@@ -1,0 +1,14 @@
+[
+    {
+        "name": "Agent 1",
+        "version": "1.0",
+        "description": "First agent",
+        "prompt": "You are a helpful assistant."
+    },
+    {
+        "name": "Agent 2",
+        "version": "1.0",
+        "description": "Second agent",
+        "prompt": "You are another helpful assistant."
+    }
+]

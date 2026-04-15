@@ -53,7 +53,7 @@ async def main():
         st.header("Agents")
         available_agents = get_agent_list()
         
-        # Select/Unselect all buttons            
+        # Select/Unselect all buttons
         if st.button("Select All", use_container_width=True):
             for agent in available_agents:
                 st.session_state[f"agent_{agent}"] = True
@@ -97,10 +97,12 @@ async def main():
         with st.chat_message("assistant"):
             # apply sidebar settings to the API model instance
             model_index = available_models.index(st.session_state["model"])
+            selected_agents = [agent for agent in available_agents if st.session_state.get(f"agent_{agent}", False)]
             stream = call_orchestrator(model_index,
                                         st.session_state.messages,
                                         temperature=st.session_state["temperature"],
-                                        max_tokens=st.session_state["max_completion_tokens"])
+                                        max_tokens=st.session_state["max_completion_tokens"],
+                                        selected_agents=selected_agents)
 
             previous_type = None
             content_placeholder = []

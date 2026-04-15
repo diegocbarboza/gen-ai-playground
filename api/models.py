@@ -44,8 +44,8 @@ def delete_model(model_index):
 
 def save_models_to_file():
     """Saves the current available models to the JSON file."""
-    with open("models.json", "w", encoding="utf-8") as f:
-        json.dump(available_models, f)
+    with open("data/models.json", "w", encoding="utf-8") as f:
+        json.dump(available_models, f, indent=4)
 
 
 def get_model_instance(index: int, temperature: float = 0.7, max_tokens: int = 1024):

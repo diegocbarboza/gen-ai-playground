@@ -3,6 +3,7 @@ import asyncio
 import streamlit as st
 from langchain_core.messages import AIMessageChunk, AIMessage, HumanMessage, ToolMessage
 
+from api.agents import get_agent_list, get_agent_parameters
 from api.models import get_model_parameters, get_model_list
 from api.orchestrator import call_orchestrator
 
@@ -23,16 +24,16 @@ async def main():
     # Sidebar: model settings
     with st.sidebar:
         # Conversation controls
-        if st.button("➕ New conversation"):
+        if st.button("➕ New conversation", use_container_width=True):
             st.session_state["messages"] = []
 
         st.markdown("---")
         
-        st.header("Settings")
+        st.header("Model")
         available_models = get_model_list()
         model_index = available_models.index(st.session_state["model"]) if st.session_state["model"] in available_models else 0
 
-        model_input = st.selectbox("Model", options=available_models, index=model_index)
+        model_input = st.selectbox("Name", options=available_models, index=model_index)
         model_parameters = get_model_parameters(available_models.index(model_input))
         temperature_input = st.slider("Temperature",
                                     min_value=model_parameters["temperature_min"],
@@ -48,6 +49,32 @@ async def main():
         st.session_state["model"] = model_input
         st.session_state["temperature"] = float(temperature_input)
         st.session_state["max_completion_tokens"] = int(max_completion_tokens_input)
+
+        st.header("Agents")
+        available_agents = get_agent_list()
+        
+        # Select/Unselect all buttons            
+        if st.button("Select All", use_container_width=True):
+            for agent in available_agents:
+                st.session_state[f"agent_{agent}"] = True
+            st.rerun()
+        if st.button("Unselect All", use_container_width=True):
+            for agent in available_agents:
+                st.session_state[f"agent_{agent}"] = False
+            st.rerun()
+        
+        # Scrollable container for agents list
+        with st.container(height=350):
+            for agent in available_agents:
+                params = get_agent_parameters(available_agents.index(agent))
+                description = params.get("description", "")
+                
+                col1, col2 = st.columns([0.9, 0.1])
+                with col1:
+                    st.checkbox(agent, value=st.session_state.get(f"agent_{agent}", False), key=f"agent_{agent}")
+                with col2:
+                    if description:
+                        st.markdown(f"""<span title="{description}">ℹ️</span>""", unsafe_allow_html=True)
 
     # Chat interface        
     st.title("GenAI Playground")

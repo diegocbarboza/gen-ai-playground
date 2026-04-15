@@ -44,6 +44,7 @@ for agent in available_agents:
     with col1:
         st.subheader(agent)
     with col2:
+        params = get_agent_parameters(available_agents.index(agent))
         if st.button("✏️ Edit", key=f"edit_{agent}"):
             if "edit_agent" not in st.session_state:
                 st.session_state["edit_agent"] = agent

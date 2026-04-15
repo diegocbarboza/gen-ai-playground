@@ -10,7 +10,7 @@ with open("data/agents.json", "r", encoding="utf-8") as f:
 
 def get_agent_list():
     """Returns a list of available agent names."""
-    return [agent["name"] for agent in available_agents]
+    return [f"{agent['name']} (v{agent['version']})" for agent in available_agents]
 
 
 def get_agent_parameters(index: int):
@@ -38,5 +38,5 @@ def delete_agent(agent_index):
 
 def save_agents_to_file():
     """Saves the current available agents to the JSON file."""
-    with open("agents.json", "w", encoding="utf-8") as f:
-        json.dump(available_agents, f)
+    with open("data/agents.json", "w", encoding="utf-8") as f:
+        json.dump(available_agents, f, indent=4)

@@ -42,6 +42,20 @@ def delete_model(model_index):
     save_models_to_file()
 
 
+def move_model_up(model_index):
+    """Moves the model up in the list based on the index provided."""
+    if model_index > 0:
+        available_models[model_index - 1], available_models[model_index] = available_models[model_index], available_models[model_index - 1]
+        save_models_to_file()
+
+
+def move_model_down(model_index):
+    """Moves the model down in the list based on the index provided."""
+    if model_index < len(available_models) - 1:
+        available_models[model_index], available_models[model_index + 1] = available_models[model_index + 1], available_models[model_index]
+        save_models_to_file()
+
+
 def save_models_to_file():
     """Saves the current available models to the JSON file."""
     with open("data/models.json", "w", encoding="utf-8") as f:

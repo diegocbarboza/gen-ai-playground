@@ -1,7 +1,7 @@
 """Settings screen."""
 
 import streamlit as st
-from api.models import add_model, update_model, delete_model, get_model_parameters, get_model_list
+from api.models import add_model, move_model_down, move_model_up, update_model, delete_model, get_model_parameters, get_model_list
 
 def edit_model(model_parameters):
     """Function to edit or add a model."""
@@ -59,7 +59,7 @@ for model in available_models:
 
     if "edit_model" in st.session_state and st.session_state["edit_model"] == model:
         model_parameters = edit_model(get_model_parameters(available_models.index(st.session_state["edit_model"])))
-        col1, col2, col3 = st.columns([1, 1, 1])
+        col1, col2, col3, col4, col5 = st.columns([1, 1, 1, 0.4, 0.4])
         with col1:
             if st.button("💾 Save Model"):
                 update_model(available_models.index(st.session_state["edit_model"]), model_parameters)
@@ -73,6 +73,14 @@ for model in available_models:
         with col3:
             if st.button("❌ Cancel"):
                 st.session_state["edit_model"] = ""
+                st.rerun()
+        with col4:
+            if st.button("⬆️"):
+                move_model_up(available_models.index(st.session_state["edit_model"]))
+                st.rerun()
+        with col5:
+            if st.button("⬇️"):
+                move_model_down(available_models.index(st.session_state["edit_model"]))
                 st.rerun()
     else:
         parameters = get_model_parameters(available_models.index(model))

@@ -1,3 +1,5 @@
-streamlit run main.py
+Run the code:
+```streamlit run main.py```
 
-https://app.arize.com/
+Tracing:
+```https://app.phoenix.arize.com/```

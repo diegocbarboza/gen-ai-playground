@@ -6,12 +6,13 @@ from dotenv import load_dotenv
 from phoenix.otel import register
 from openinference.instrumentation.langchain import LangChainInstrumentor
 #from langchain_mcp_adapters.client import MultiServerMCPClient
-from langchain_core.messages import BaseMessage, SystemMessage
+from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage
 from langchain_core.tools import Tool, tool
 from langchain_core.language_models import BaseChatModel
 from langgraph.graph import StateGraph, END
 from langgraph.prebuilt import ToolNode, tools_condition
 from api.agents import get_agent_list, get_agent_parameters
+from services.create_agent import create_agent
 
 load_dotenv()
 
@@ -25,16 +26,23 @@ def get_weather(city: str) -> str:
     """Get the current weather for a city"""
     return f"The weather in {city} is sunny, 5°C."
 
-def make_tool(name: str, agent_parameters):
+def make_tool(model: BaseChatModel, name: str, agent_parameters):
     # Sanitize tool name: Replace invalid chars with underscores, ensure max length of 128
     # Valid chars: alphanumeric (a-z, A-Z, 0-9), underscores (_), dots (.), colons (:), or dashes (-)
     sanitized_name = re.sub(r'[^a-zA-Z0-9_.:-]', '_', name)[:128]
-    
-    #TODO: instantiate and run agent
-    def dynamic_tool(input: str) -> str:
-        # you can customize behavior here
-        print(f"Tool {sanitized_name} received input: {input}")
-        return f"[{sanitized_name}] received: {input}"
+
+    def dynamic_tool(prompt: str) -> str:
+        """Tool function that runs the agent with the given prompt and returns the response."""
+        agent = create_agent(
+            name=sanitized_name,
+            version=agent_parameters["version"],
+            model=model,
+            instructions=agent_parameters["prompt"]
+        )
+
+        return agent.invoke({
+            "messages": [HumanMessage(content=prompt)],
+        })
 
     return Tool(
         name=sanitized_name,
@@ -61,7 +69,7 @@ class Orchestrator:
         available_agents = get_agent_list()
         for agent in selected_agents:
             agent_params = get_agent_parameters(available_agents.index(agent))
-            self.tools.append(make_tool(agent, agent_params))
+            self.tools.append(make_tool(self.model, agent, agent_params))
 
         graph = StateGraph(State)
 
@@ -122,7 +130,6 @@ class Orchestrator:
                         "If a task was successful, confirm it."
                         "You may use the following context if relevant:\n"
                         f"{context}"
-                        "Always answer in portuguese."
                     )
                 )
             ] + state["messages"]

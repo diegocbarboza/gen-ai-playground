@@ -10,7 +10,9 @@ with open("data/agents.json", "r", encoding="utf-8") as f:
 
 def get_agent_list():
     """Returns a list of available agent names."""
-    return [f"{agent['name']} (v{agent['version']})" for agent in available_agents]
+    agents = [f"{agent['name']} (v{agent['version']})" for agent in available_agents]
+    agents.sort()
+    return agents
 
 
 def get_agent_parameters(index: int):

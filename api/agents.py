@@ -4,14 +4,19 @@ import json
 
 available_agents = []
 
+def sort_agents():
+    """Sorts the available agents list alphabetically by name."""
+    available_agents.sort(key=lambda x: x["name"].lower())
+
+
 with open("data/agents.json", "r", encoding="utf-8") as f:
     available_agents = json.load(f)
+    sort_agents()
 
 
 def get_agent_list():
     """Returns a list of available agent names."""
     agents = [f"{agent['name']} (v{agent['version']})" for agent in available_agents]
-    agents.sort()
     return agents
 
 
@@ -23,12 +28,14 @@ def get_agent_parameters(index: int):
 def add_agent(agent_parameters):
     """Adds a new agent to the available agents list."""
     available_agents.append(agent_parameters)
+    sort_agents()
     save_agents_to_file()
 
 
 def update_agent(agent_index, agent_parameters):
     """Updates the agent parameters based on the index provided"""
     available_agents[agent_index] = {**available_agents[agent_index], **agent_parameters}
+    sort_agents()
     save_agents_to_file()
 
 

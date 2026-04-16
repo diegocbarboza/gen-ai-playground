@@ -53,8 +53,7 @@ class Orchestrator:
 
     async def invoke(self, messages: list[BaseMessage], selected_agents: list[str] = None):
         """Invoke the orchestrator with the given user input."""
-    
-        #self.tools = [get_weather]
+
         available_agents = get_agent_list()
         for agent in selected_agents:
             agent_params = get_agent_parameters(available_agents.index(agent))

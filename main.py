@@ -1,8 +1,10 @@
 """Main app file for the GenAI Playground"""
+import os
 import asyncio
+from phoenix.otel import register
+from openinference.instrumentation.langchain import LangChainInstrumentor
 import streamlit as st
 from langchain_core.messages import AIMessageChunk, AIMessage, HumanMessage, ToolMessage
-
 from api.agents import get_agent_list, get_agent_parameters
 from api.models import get_model_parameters, get_model_list
 from api.orchestrator import call_orchestrator
@@ -161,5 +163,16 @@ async def main():
             )
         )
 
+
+@st.cache_resource
+def configure_tracing():
+    """Configures tracing for the application."""
+    os.environ["PHOENIX_CLIENT_HEADERS"] = f"api_key={os.getenv('PHOENIX_API_KEY')}"
+    tracer_provider = register()
+
+    LangChainInstrumentor().instrument(tracer_provider=tracer_provider)
+
+
 if __name__ == "__main__":
+    configure_tracing()
     asyncio.run(main())

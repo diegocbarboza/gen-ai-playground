@@ -1,13 +1,10 @@
 """Orchestrator class to manage interactions between different models, tools and agents."""
-import os
 import re
 from typing import TypedDict, List
 from dotenv import load_dotenv
-from phoenix.otel import register
-from openinference.instrumentation.langchain import LangChainInstrumentor
 #from langchain_mcp_adapters.client import MultiServerMCPClient
 from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage
-from langchain_core.tools import Tool, tool
+from langchain_core.tools import Tool
 from langchain_core.language_models import BaseChatModel
 from langgraph.graph import StateGraph, END
 from langgraph.prebuilt import ToolNode, tools_condition
@@ -16,17 +13,9 @@ from services.create_agent import create_agent
 
 load_dotenv()
 
-os.environ["PHOENIX_CLIENT_HEADERS"] = f"api_key={os.getenv('PHOENIX_API_KEY')}"
-tracer_provider = register()
-
-LangChainInstrumentor().instrument(tracer_provider=tracer_provider)
-
-@tool
-def get_weather(city: str) -> str:
-    """Get the current weather for a city"""
-    return f"The weather in {city} is sunny, 5°C."
 
 def make_tool(model: BaseChatModel, name: str, agent_parameters):
+    """Creates a tool function for the given agent parameters."""
     # Sanitize tool name: Replace invalid chars with underscores, ensure max length of 128
     # Valid chars: alphanumeric (a-z, A-Z, 0-9), underscores (_), dots (.), colons (:), or dashes (-)
     sanitized_name = re.sub(r'[^a-zA-Z0-9_.:-]', '_', name)[:128]
@@ -122,7 +111,7 @@ class Orchestrator:
         if len(tool_context) == 0:
             response = self.model.invoke(state["messages"])
         else:
-            context = "\n".join(str(tool_context))
+            context = "\n".join(tool_context)
             prompt = [
                 SystemMessage(
                     content=(
